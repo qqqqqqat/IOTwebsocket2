@@ -54,15 +54,22 @@
             },
           ],
         },
-        // ... rest of the options
+        options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                    },
+                },
+            },
       });
     </script>
 
     <script>
-      const ws = new WebSocket("wss://c9f2711bf4859d.lhr.life");
+      const ws = new WebSocket("wss://0301cd0300549a.lhr.life");
 
       const clientStatus = document.getElementById("client-status");
-
+      let lastestReceivedAt = 0;
+      
       ws.onopen = () => {
         console.log("Connected to the WebSocket server");
         clientStatus.innerHTML = `
@@ -73,28 +80,26 @@
 
       ws.onmessage = (event) => {
         const message = event.data;
-        const match = message.match(/LED brightness set to: ([\d.]+)%/);
-        if (match) {
-          const brightness = parseFloat(match[1]);
-          const voltage = (brightness / 100) * 3.3; // Assuming the maximum voltage is 3.3V
-          console.log("Received LED brightness:", brightness, "%");
-          console.log("Calculated voltage:", voltage, "V");
+            const value = parseFloat(message);
+            console.log(message);
+            if (isNaN(value)) {
+                console.error("Invalid potentiometer value:", message);
+                return;
+            }
+            console.log("Received potentiometer value:", value);
 
-          // Update chart with voltage data
-          chart.data.labels.push(new Date().toLocaleTimeString());
-          chart.data.datasets[0].data.push(voltage);
-          chart.update();
-
-          // Limit to last 20 data points
-          if (chart.data.labels.length > 20) {
-            chart.data.labels.shift();
-            chart.data.datasets[0].data.shift();
+            chart.data.labels.push(new Date().toLocaleTimeString());
+            chart.data.datasets[0].data.push(value);
             chart.update();
-          }
-        } else {
-          console.error("Invalid sensor data format:", message);
-        }
-      };
+
+            if (chart.data.labels.length > 20) {
+                chart.data.labels.shift();
+                chart.data.datasets[0].data.shift();
+                chart.update();
+            }
+
+            lastestReceivedAt = new Date();
+        };
 
       ws.onclose = () => {
         console.log("Disconnected from the WebSocket server");
